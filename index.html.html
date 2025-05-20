@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <title>Platforma Za³adunku i Roz³adunku</title>
+  <style>
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 6px;
+      text-align: center;
+    }
+    .pilne {
+      background-color: #ffe6e6;
+    }
+    .status-aktualne {
+      background-color: #a5f3a1 !important;
+      font-weight: bold;
+    }
+    .status-nieaktualne {
+      background-color: #f9a1a1 !important;
+      font-weight: bold;
+    }
+    .status-nieznane {
+      background-color: #fff7a1 !important;
+      font-weight: bold;
+    }
+    .date-time-group input {
+      width: 45%;
+      display: inline-block;
+      margin: 2px 1%;
+    }
+    textarea {
+      width: 100%;
+      height: 60px;
+      resize: vertical;
+    }
+    input[list] {
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Platforma Za³adunku i Roz³adunku</h1>
+
+  <button onclick="dodajWiersz()">? Dodaj nowy wiersz</button>
+  <button onclick="sortujTabele()">? Sortuj wed³ug daty</button>
+
+  <datalist id="lokalizacje"></datalist>
+
+  <table id="tabela">
+    <thead>
+      <tr>
+        <th>PILNE</th>
+        <th>Za³adunek</th>
+        <th>Data za³adunku (od-do)</th>
+        <th>Godzina za³adunku (od-do)</th>
+        <th>Roz³adunek</th>
+        <th>Data roz³adunku (od-do)</th>
+        <th>Godzina roz³adunku (od-do)</th>
+        <th>Sposób za³adunku</th>
+        <th>PotwierdŸ aktualnoœæ</th>
+        <th>Uwagi</th>
+        <th>Stawka</th>
+        <th>Akcje</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    const tabela = document.getElementById("tabela").getElementsByTagName("tbody")[0];
+
+    function dodajWiersz() {
+      const wiersz = tabela.insertRow();
+      wiersz.classList.add("pilne");
+
+      wiersz.innerHTML = `
+        <td><input type="checkbox" checked onclick="togglePilne(this)"></td>
+        <td><input type="text" list="lokalizacje" placeholder="Kod + miasto, kraj"></td>
+        <td class="date-time-group"><input type="date"> <input type="date"></td>
+        <td class="date-time-group"><input type="time"> <input type="time"></td>
+        <td><input type="text" list="lokalizacje" placeholder="Kod + miasto, kraj"></td>
+        <td class="date-time-group"><input type="date"> <input type="date"></td>
+        <td class="date-time-group"><input type="time"> <input type="time"></td>
+        <td>
+          <select>
+            <option value="ty³em">Ty³em</option>
+            <option value="bokiem">Bokiem</option>
+            <option value="gór¹">Gór¹</option>
+            <option value="bok_góra">Bok + Góra</option>
+            <option value="auto_winda">Auto z wind¹</option>
+            <option value="inne">Inne</option>
+          </select>
+        </td>
+        <td>
+          <select onchange="zmienAktualnosc(this)">
+            <option value="">-- wybierz --</option>
+            <option value="aktualne">Aktualne</option>
+            <option value="nieaktualne">Nieaktualne</option>
+            <option value="nieznane">???</option>
+          </select>
+        </td>
+        <td><textarea placeholder="Uwagi"></textarea></td>
+        <td><input type="text" placeholder="Stawka"></td>
+        <td><button onclick="usunWiersz(this)">??? Usuñ</button></td>
+      `;
+    }
+
+    function usunWiersz(button) {
+      if (confirm("Czy na pewno chcesz usun¹æ ten wiersz?")) {
+        const wiersz = button.closest("tr");
+        tabela.deleteRow(wiersz.rowIndex - 1);
+      }
+    }
+
+    function zmienAktualnosc(select) {
+      const td = select.parentNode;
+      td.classList.remove("status-aktualne", "status-nieaktualne", "status-nieznane");
+      if (select.value === "aktualne") td.classList.add("status-aktualne");
+      else if (select.value === "nieaktualne") td.classList.add("status-nieaktualne");
+      else if (select.value === "nieznane") td.classList.add("status-nieznane");
+    }
+
+    function togglePilne(checkbox) {
+      const wiersz = checkbox.closest("tr");
+      wiersz.classList.toggle("pilne", checkbox.checked);
+      const tbody = tabela;
+      tbody.removeChild(wiersz);
+      checkbox.checked ? tbody.insertBefore(wiersz, tbody.firstChild) : tbody.appendChild(wiersz);
+    }
+
+    function sortujTabele() {
+      const wiersze = Array.from(tabela.rows);
+      wiersze.sort((a, b) => {
+        const dataA = new Date(a.cells[2].querySelector("input").value);
+        const dataB = new Date(b.cells[2].querySelector("input").value);
+        return dataA - dataB;
+      });
+      wiersze.forEach(wiersz => tabela.appendChild(wiersz));
+    }
+
+    // £adowanie lokalizacji z lokalnego pliku JSON
+    fetch("europe_postal_codes.json")
+      .then(response => response.json())
+      .then(data => {
+        const datalist = document.getElementById("lokalizacje");
+        data.forEach(entry => {
+          const option = document.createElement("option");
+          option.value = `${entry.postal_code} ${entry.place_name}, ${entry.country_code}`;
+          datalist.appendChild(option);
+        });
+      })
+      .catch(error => console.error("B³¹d podczas ³adowania lokalizacji UE:", error));
+  </script>
+
+</body>
+</html>
